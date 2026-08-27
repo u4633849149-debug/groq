@@ -26,7 +26,7 @@ def chat():
         user_message = data.get("message", "Hallo")
 
         chat_completion = client.chat.completions.create(
-            model="llama3-8b-8192",  # Stabiles und funktionierendes Modell für deinen Key
+            model="llama-3.1-8b-instant",  # Das aktuelle, aktive Standardmodell
             messages=[
                 {
                     "role": "system",
