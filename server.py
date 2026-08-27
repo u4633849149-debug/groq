@@ -24,7 +24,7 @@ def chat():
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_message}
             ],
-            model="llama-3.1-8b-instant",  # Aktualisiertes, stabiles Modell
+            model="llama3-8b-8192",  # Wieder zurückgeändert auf das universelle Modell
             max_tokens=60,
         )
         bot_reply = chat_completion.choices[0].message.content
