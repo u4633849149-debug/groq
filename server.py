@@ -4,6 +4,7 @@ from groq import Groq
 
 app = Flask(__name__)
 
+# Groq API Key aus den Umgebungsvariablen
 api_key = os.environ.get("GROQ_API_KEY")
 
 if not api_key:
@@ -11,49 +12,81 @@ if not api_key:
 
 client = Groq(api_key=api_key)
 
-SYSTEM_PROMPT = (
-    "Du bist ein cooler, lockerer NPC in einem Roblox-Spiel. "
-    "Antworte immer auf den Sprachen die der spieler schreibt, aber variiere deine Antworten, antworte nicht immer gleich! "
-    "Benutze verschiedene Ausdrücke, Slang oder Witze. "
-    "Bleibe kurz (1-2 Sätze), damit es wie ein echter Chat wirkt."
-)
+
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify({
+        "status": "online",
+        "message": "Roblox NPC API läuft!"
+    })
+
 
 @app.route("/chat", methods=["POST"])
 def chat():
     try:
+        # JSON vom Roblox-Spiel empfangen
         data = request.get_json(silent=True) or {}
-        user_message = data.get("message", "Hallo")
 
+        print("📥 Empfangene Daten:", data)
+
+        # Nachricht des Spielers holen
+        user_message = data.get("message")
+
+        if not user_message:
+            print("❌ Keine Nachricht erhalten!")
+
+            return jsonify({
+                "reply": "Ich habe deine Nachricht nicht bekommen!"
+            }), 400
+
+        print("👤 Spieler schreibt:", user_message)
+
+        # Nachricht an Groq senden
         chat_completion = client.chat.completions.create(
             model="openai/gpt-oss-120b",
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_message}
+                {
+                    "role": "system",
+                    "content": (
+                        "Du bist ein cooler NPC in einem Roblox-Spiel. "
+                        "Antworte direkt auf das, was der Spieler schreibt. "
+                        "Gehe immer auf seine konkrete Nachricht ein. "
+                        "Antworte immer auf Deutsch. "
+                        "Sei abwechslungsreich, natürlich und freundlich. "
+                        "Wiederhole nicht ständig dieselben Antworten. "
+                        "Antworte maximal in 1-2 Sätzen."
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": user_message
+                }
             ],
-            max_tokens=50,
-            temperature=0.7
+            max_tokens=60,
+            temperature=0.8
         )
 
-        # Sicherer Zugriff auf den Antwort-Text
-        bot_reply = ""
-        if chat_completion.choices and len(chat_completion.choices) > 0:
-            message_obj = chat_completion.choices[0].message
-            if message_obj and message_obj.content:
-                bot_reply = message_obj.content.strip()
+        # Antwort der KI
+        bot_reply = chat_completion.choices[0].message.content.strip()
 
-        if not bot_reply:
-            bot_reply = "Hey du!"
+        print("🤖 NPC antwortet:", bot_reply)
 
-        return jsonify({"reply": bot_reply})
+        return jsonify({
+            "reply": bot_reply
+        })
 
     except Exception as e:
-        print(f"Fehler bei der Groq-Anfrage: {e}")
-        return jsonify({"reply": "Hmm..."}), 500
+        print("❌ Fehler bei der Groq-Anfrage:", e)
 
-@app.route("/", methods=["GET"])
-def home():
-    return jsonify({"status": "online", "message": "Roblox NPC API läuft!"})
+        return jsonify({
+            "reply": "Ups, da ist etwas schiefgelaufen!"
+        }), 500
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+
+    app.run(
+        host="0.0.0.0",
+        port=port
+    )
