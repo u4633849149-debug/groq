@@ -4,7 +4,6 @@ from groq import Groq
 
 app = Flask(__name__)
 
-# Groq API-Key aus den Render Environment Variables
 api_key = os.environ.get("GROQ_API_KEY")
 
 if not api_key:
@@ -18,7 +17,6 @@ SYSTEM_PROMPT = (
     "Maximal 1-2 Sätze, damit es wie ein echter Chat im Spiel wirkt."
 )
 
-
 @app.route("/chat", methods=["POST"])
 def chat():
     try:
@@ -26,46 +24,26 @@ def chat():
         user_message = data.get("message", "Hallo")
 
         chat_completion = client.chat.completions.create(
-            model="llama-3.1-8b-instant",  # Das aktuelle, aktive Standardmodell
+            model="gemma2-9b-it",  # Absolut stabiles Modell für den kostenlosen Account
             messages=[
-                {
-                    "role": "system",
-                    "content": SYSTEM_PROMPT
-                },
-                {
-                    "role": "user",
-                    "content": user_message
-                }
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_message}
             ],
             max_tokens=60,
             temperature=0.7
         )
 
         bot_reply = chat_completion.choices[0].message.content
-
-        return jsonify({
-            "reply": bot_reply
-        })
+        return jsonify({"reply": bot_reply})
 
     except Exception as e:
         print(f"Fehler bei der Groq-Anfrage: {e}")
-
-        return jsonify({
-            "reply": "Hmm, ich habe gerade Verbindungsprobleme..."
-        }), 500
-
+        return jsonify({"reply": "Hmm, ich habe gerade Verbindungsprobleme..."}), 500
 
 @app.route("/", methods=["GET"])
 def home():
-    return jsonify({
-        "status": "online",
-        "message": "Roblox NPC API läuft!"
-    })
-
+    return jsonify({"status": "online", "message": "Roblox NPC API läuft!"})
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(
-        host="0.0.0.0",
-        port=port
-    )
+    app.run(host="0.0.0.0", port=port)
