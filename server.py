@@ -24,12 +24,14 @@ def chat():
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_message}
             ],
-            model="llama3-8b-8192",
+            model="llama-3.1-8b-instant",  # Aktualisiertes, stabiles Modell
             max_tokens=60,
         )
         bot_reply = chat_completion.choices[0].message.content
         return jsonify({"reply": bot_reply})
     except Exception as e:
+        # Gibt den genauen Fehler zur Diagnose in den Render-Log aus
+        print(f"Fehler bei der Groq-Anfrage: {e}")
         return jsonify({"reply": "Hmm, ich habe gerade Verbindungsprobleme..."}), 500
 
 if __name__ == "__main__":
