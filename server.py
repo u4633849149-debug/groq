@@ -4,37 +4,68 @@ from groq import Groq
 
 app = Flask(__name__)
 
-# Holt den Key sicher aus den Render-Einstellungen (Environment Variables)
-client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+# Groq API-Key aus den Render Environment Variables
+api_key = os.environ.get("GROQ_API_KEY")
+
+if not api_key:
+    raise RuntimeError("GROQ_API_KEY wurde nicht gefunden!")
+
+client = Groq(api_key=api_key)
 
 SYSTEM_PROMPT = (
     "Du bist ein freundlicher NPC in einem Roblox-Spiel. "
-    "Du antwortest kurz, cool und auf Deutsch (maximal 1-2 Sätze), "
-    "damit es wie ein echter Chat im Spiel wirkt."
+    "Du antwortest kurz, cool und auf Deutsch. "
+    "Maximal 1-2 Sätze, damit es wie ein echter Chat im Spiel wirkt."
 )
+
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    data = request.json
-    user_message = data.get("message", "Hallo")
-    
     try:
+        data = request.get_json(silent=True) or {}
+        user_message = data.get("message", "Hallo")
+
         chat_completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_message}
+                {
+                    "role": "system",
+                    "content": SYSTEM_PROMPT
+                },
+                {
+                    "role": "user",
+                    "content": user_message
+                }
             ],
-            model="llama3-8b-8192",  # Wieder zurückgeändert auf das universelle Modell
             max_tokens=60,
+            temperature=0.7
         )
+
         bot_reply = chat_completion.choices[0].message.content
-        return jsonify({"reply": bot_reply})
+
+        return jsonify({
+            "reply": bot_reply
+        })
+
     except Exception as e:
-        # Gibt den genauen Fehler zur Diagnose in den Render-Log aus
         print(f"Fehler bei der Groq-Anfrage: {e}")
-        return jsonify({"reply": "Hmm, ich habe gerade Verbindungsprobleme..."}), 500
+
+        return jsonify({
+            "reply": "Hmm, ich habe gerade Verbindungsprobleme..."
+        }), 500
+
+
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify({
+        "status": "online",
+        "message": "Roblox NPC API läuft!"
+    })
+
 
 if __name__ == "__main__":
-    # Render weist automatisch einen Port zu
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(
+        host="0.0.0.0",
+        port=port
+    )
