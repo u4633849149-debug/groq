@@ -24,7 +24,7 @@ def chat():
         user_message = data.get("message", "Hallo")
 
         chat_completion = client.chat.completions.create(
-            model="llama-3.1-8b-instant",  # Das aktuelle, funktionierende Standardmodell
+            model="openai/gpt-oss-120b",  # Exakt das Modell aus deinem Playground
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_message}
