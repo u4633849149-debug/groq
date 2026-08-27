@@ -13,8 +13,8 @@ client = Groq(api_key=api_key)
 
 SYSTEM_PROMPT = (
     "Du bist ein freundlicher NPC in einem Roblox-Spiel. "
-    "Du antwortest kurz, cool und auf Deutsch. "
-    "Maximal 1-2 Sätze, damit es wie ein echter Chat im Spiel wirkt."
+    "Antworte immer kurz, direkt und auf Deutsch in maximal 1 bis 2 Sätzen. "
+    "Schreibe keinen erklärenden Text, sondern direkt die gesprochene Antwort."
 )
 
 @app.route("/chat", methods=["POST"])
@@ -24,21 +24,30 @@ def chat():
         user_message = data.get("message", "Hallo")
 
         chat_completion = client.chat.completions.create(
-            model="openai/gpt-oss-120b",  # Exakt das Modell aus deinem Playground
+            model="openai/gpt-oss-120b",
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_message}
             ],
-            max_tokens=60,
+            max_tokens=50,
             temperature=0.7
         )
 
-        bot_reply = chat_completion.choices[0].message.content
+        # Sicherer Zugriff auf den Antwort-Text
+        bot_reply = ""
+        if chat_completion.choices and len(chat_completion.choices) > 0:
+            message_obj = chat_completion.choices[0].message
+            if message_obj and message_obj.content:
+                bot_reply = message_obj.content.strip()
+
+        if not bot_reply:
+            bot_reply = "Hey du!"
+
         return jsonify({"reply": bot_reply})
 
     except Exception as e:
         print(f"Fehler bei der Groq-Anfrage: {e}")
-        return jsonify({"reply": "Hmm, ich habe gerade Verbindungsprobleme..."}), 500
+        return jsonify({"reply": "Hmm..."}), 500
 
 @app.route("/", methods=["GET"])
 def home():
