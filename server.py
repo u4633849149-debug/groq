@@ -4,7 +4,10 @@ from groq import Groq
 
 app = Flask(__name__)
 
-# Groq API Key aus den Umgebungsvariablen
+# ==========================================
+# GROQ API
+# ==========================================
+
 api_key = os.environ.get("GROQ_API_KEY")
 
 if not api_key:
@@ -12,6 +15,10 @@ if not api_key:
 
 client = Groq(api_key=api_key)
 
+
+# ==========================================
+# STARTSEITE
+# ==========================================
 
 @app.route("/", methods=["GET"])
 def home():
@@ -21,15 +28,24 @@ def home():
     })
 
 
+# ==========================================
+# CHAT
+# ==========================================
+
 @app.route("/chat", methods=["POST"])
 def chat():
     try:
-        # JSON vom Roblox-Spiel empfangen
+
+        # ------------------------------------------
+        # JSON von Roblox empfangen
+        # ------------------------------------------
+
         data = request.get_json(silent=True) or {}
 
-        print("📥 Empfangene Daten:", data)
+        print("========================================")
+        print("📥 NEUE ANFRAGE")
+        print("📦 Empfangene Daten:", data)
 
-        # Nachricht des Spielers holen
         user_message = data.get("message")
 
         if not user_message:
@@ -39,52 +55,160 @@ def chat():
                 "reply": "Ich habe deine Nachricht nicht bekommen!"
             }), 400
 
-        print("👤 Spieler schreibt:", user_message)
+        user_message = str(user_message).strip()
 
+        print("👤 Spieler schreibt:", repr(user_message))
+
+
+        # ------------------------------------------
         # Nachricht an Groq senden
+        # ------------------------------------------
+
         chat_completion = client.chat.completions.create(
             model="openai/gpt-oss-120b",
+
             messages=[
                 {
                     "role": "system",
                     "content": (
-                        "Du bist ein cooler NPC in einem Roblox-Spiel. "
-                        "Antworte direkt auf das, was der Spieler schreibt. "
-                        "Gehe immer auf seine konkrete Nachricht ein. "
+                        "Du bist ein cooler NPC namens Rig in einem Roblox-Spiel. "
+
+                        "Reagiere IMMER direkt auf das, was der Spieler gerade schreibt. "
+
+                        "Wenn der Spieler dich begrüßt, begrüße ihn zurück. "
+                        "Wenn der Spieler eine Frage stellt, beantworte genau diese Frage. "
+                        "Wenn der Spieler fragt, wie es dir geht, antworte darauf. "
+
                         "Antworte immer auf Deutsch. "
-                        "Sei abwechslungsreich, natürlich und freundlich. "
-                        "Wiederhole nicht ständig dieselben Antworten. "
-                        "Antworte maximal in 1-2 Sätzen."
+                        "Sei locker, freundlich, natürlich und abwechslungsreich. "
+                        "Vermeide immer wieder dieselben Antworten. "
+
+                        "Antworte maximal mit 1 bis 2 kurzen Sätzen."
                     )
                 },
+
                 {
                     "role": "user",
                     "content": user_message
                 }
             ],
-            max_tokens=60,
+
+            max_tokens=100,
             temperature=0.8
         )
 
-        # Antwort der KI
-        bot_reply = chat_completion.choices[0].message.content.strip()
 
-        print("🤖 NPC antwortet:", bot_reply)
+        # ------------------------------------------
+        # Groq Antwort überprüfen
+        # ------------------------------------------
+
+        print("📦 Groq-Antwort erhalten")
+
+        print("Choices:", len(chat_completion.choices))
+
+
+        if not chat_completion.choices:
+
+            print("❌ Groq hat keine Choices zurückgegeben!")
+
+            return jsonify({
+                "reply": "Hmm... ich habe gerade keine Antwort."
+            })
+
+
+        choice = chat_completion.choices[0]
+
+        print("📦 Choice:", choice)
+
+
+        # ------------------------------------------
+        # Message überprüfen
+        # ------------------------------------------
+
+        if not choice.message:
+
+            print("❌ Groq hat keine Message zurückgegeben!")
+
+            return jsonify({
+                "reply": "Hmm... ich kann gerade nicht antworten."
+            })
+
+
+        print("📦 Message:", choice.message)
+
+
+        # ------------------------------------------
+        # Content auslesen
+        # ------------------------------------------
+
+        bot_reply = choice.message.content
+
+
+        print("📄 Rohantwort:", repr(bot_reply))
+
+
+        if bot_reply is None:
+
+            print("❌ Groq Content ist None!")
+
+            bot_reply = ""
+
+
+        bot_reply = str(bot_reply).strip()
+
+
+        # ------------------------------------------
+        # Leere Antwort verhindern
+        # ------------------------------------------
+
+        if not bot_reply:
+
+            print("⚠️ GROQ HAT EINE LEERE ANTWORT GELIEFERT!")
+
+            bot_reply = (
+                "Hmm, da bin ich gerade etwas sprachlos. "
+                "Frag mich nochmal!"
+            )
+
+
+        print("🤖 NPC antwortet:", repr(bot_reply))
+        print("========================================")
+
+
+        # ------------------------------------------
+        # Antwort an Roblox
+        # ------------------------------------------
 
         return jsonify({
             "reply": bot_reply
         })
 
+
     except Exception as e:
-        print("❌ Fehler bei der Groq-Anfrage:", e)
+
+        print("========================================")
+        print("❌ FEHLER BEI DER GROQ-ANFRAGE")
+        print("❌ Fehler:", repr(e))
+        print("========================================")
 
         return jsonify({
-            "reply": "Ups, da ist etwas schiefgelaufen!"
+            "reply": "Ups, bei mir ist gerade etwas schiefgelaufen!"
         }), 500
 
 
+# ==========================================
+# SERVER START
+# ==========================================
+
 if __name__ == "__main__":
+
     port = int(os.environ.get("PORT", 5000))
+
+    print("========================================")
+    print("🚀 Roblox NPC API wird gestartet...")
+    print("🌐 Port:", port)
+    print("🤖 Groq Model: openai/gpt-oss-120b")
+    print("========================================")
 
     app.run(
         host="0.0.0.0",
