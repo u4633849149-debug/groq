@@ -24,7 +24,7 @@ def chat():
         user_message = data.get("message", "Hallo")
 
         chat_completion = client.chat.completions.create(
-            model="gemma2-9b-it",  # Absolut stabiles Modell für den kostenlosen Account
+            model="llama-3.1-8b-instant",  # Das aktuelle, funktionierende Standardmodell
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_message}
